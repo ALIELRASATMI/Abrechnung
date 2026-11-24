@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Salon Eingabe</title>
+<link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon-180.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Salon"><meta name="theme-color" content="#0f6f78">
+<style>
+:root{--bg:#eef2f3;--sf:#fff;--tx:#1d2a31;--mu:#5d6d76;--ac:#0f6f78;--ac2:#d9eeef;--ln:#cfd9dd;--bad:#b3261e;--box-sizing:border-box;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10181c;--sf:#1a262c;--tx:#e8eff2;--mu:#9fb0b8;--ac:#58c2ca;--ac2:#1f3a3e;--ln:#2e3f46;--bad:#ff8a80}}
+:root[data-theme="dark"]{--bg:#10181c;--sf:#1a262c;--tx:#e8eff2;--mu:#9fb0b8;--ac:#58c2ca;--ac2:#1f3a3e;--ln:#2e3f46;--bad:#ff8a80}
+*{box-sizing:border-box}html,body{margin:0}body{background:var(--bg);color:var(--tx);font:17px/1.4 -apple-system,"SF Pro Text","Segoe UI",Roboto,sans-serif;font-variant-numeric:tabular-nums;background-color:var(--bg)}
+main{max-width:760px;margin:0 auto;padding:12px 14px 90px}
+h1{font-size:22px;margin:6px 0 10px}h2{font-size:18px;margin:18px 0 8px}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--sf);border-top:1px solid var(--ln);padding-bottom:env(safe-area-inset-bottom,0px);z-index:5}
+nav button{flex:1;border:0;background:none;color:var(--mu);font-weight:600;font-size:15px;font-family:inherit;padding:14px 4px}
+nav button[aria-current=true]{color:var(--ac);box-shadow:inset 0 3px 0 var(--ac)}
+.card{background:var(--sf);border:1px solid var(--ln);border-radius:12px;padding:12px;margin:10px 0}
+label{display:block;font-size:14px;color:var(--mu);margin:8px 0 3px}
+input,select,textarea{width:100%;font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--ln);border-radius:10px;padding:12px}
+.row{display:flex;gap:10px}.row>*{flex:1}
+.btn{display:block;width:100%;border:0;border-radius:12px;background:var(--ac);color:#fff;font-weight:700;font-size:18px;font-family:inherit;padding:15px;margin-top:12px}
+html[data-theme="dark"] .btn{color:#06262a}
+.btn.sec{background:var(--ac2);color:var(--ac)}.btn.sm{width:auto;display:inline-block;padding:9px 14px;font-size:15px;margin:0}
+.prod{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--ln)}.prod:last-child{border:0}
+.prod .n{flex:1}.prod .p{color:var(--mu);font-size:14px}
+.stp{width:56px;height:56px;border-radius:14px;border:1px solid var(--ln);background:var(--ac2);color:var(--ac);font-weight:700;font-size:28px;font-family:inherit}
+.q{min-width:34px;text-align:center;font-weight:700;font-size:22px}
+.sum{display:flex;justify-content:space-between;padding:4px 0}.sum b{font-size:20px}
+.mu{color:var(--mu);font-size:14px}.bad{color:var(--bad)}.warn{background:var(--ac2);border-radius:10px;padding:10px;margin:8px 0}
+.li{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--ln)}
+#lock[hidden]{display:none}#lock{position:fixed;inset:0;background:var(--bg);z-index:20;display:flex;align-items:center;justify-content:center;padding:20px}
+#lock .card{width:min(360px,100%);text-align:center}#lock input{text-align:center;font-size:28px;letter-spacing:8px}
+#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--tx);color:var(--bg);padding:10px 16px;border-radius:10px;z-index:30;display:none}
+</style></head><body>
+<div id="lock" hidden></div><main id="v"></main><div id="toast"></div>
+<nav id="nav"></nav>
+<script>
+const PN=[];
+const CATS=['Wareneinkauf Pflegeprodukte','Friseurbedarf / Material','Miete','Nebenkosten (Strom, Wasser, Heizung)','Versicherungen','Löhne / Personal','Steuerberater','Steuern / Abgaben','Marketing / Werbung','Fahrzeug / Reise','Büro / Telefon / Internet','Reparatur / Instandhaltung','Reinigung / Wäsche','Verpflegung / Bewirtung','Sonstiges'];
+const K='salon_eingabe_v1';let S=null,mem=false,tab='tag',unlocked=false,cur={};
+const $=s=>document.querySelector(s);
+const iso=d=>{const z=new Date(d.getTime()-d.getTimezoneOffset()*6e4);return z.toISOString().slice(0,10)};
+const today=()=>iso(new Date());
+const eur=n=>(n||0).toLocaleString('de-DE',{style:'currency',currency:'EUR'});
+const num=v=>{const x=parseFloat(String(v).replace(',','.'));return isNaN(x)?0:x};
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function syncPN(){PN.length=0;S.names.forEach((n,i)=>PN.push(n||'Produkt '+(i+1)))}
+function load(){try{S=JSON.parse(localStorage.getItem(K))}catch(e){mem=true}
+ if(!S)S={pin:null,days:{},exp:[],seq:0,bk:null,prices:[],names:Array(10).fill('')}
+ S.names=S.names||Array(10).fill('');S.prices=S.prices||[];syncPN()}
+function save(){if(mem)return;try{localStorage.setItem(K,JSON.stringify(S))}catch(e){mem=true;toast('Speichern nicht möglich – bitte Backup machen')}}
+function toast(t){const e=$('#toast');e.textContent=t;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',2600)}
+const price=(p,d)=>{const l=S.prices.filter(x=>x.p===p&&x.f<=d).sort((a,b)=>a.f<b.f?1:-1)[0];return l?l.v:0};
+const dayProd=(d,q)=>(q||[]).reduce((s,n,i)=>s+n*price(i,d),0);
+/* Fotos */
+const db=new Promise(r=>{try{const q=indexedDB.open('salon',1);q.onupgradeneeded=()=>q.result.createObjectStore('p');q.onsuccess=()=>r(q.result);q.onerror=()=>r(null)}catch(e){r(null)}});
+const idb=(m,k,v)=>db.then(d=>!d?null:new Promise(r=>{try{const s=d.transaction('p',m==='get'?'readonly':'readwrite').objectStore('p');const q=m==='get'?s.get(k):m==='put'?s.put(v,k):s.delete(k);q.onsuccess=()=>r(q.result);q.onerror=()=>r(null)}catch(e){r(null)}}));
+function shrink(f){return new Promise(res=>{const i=new Image();i.onload=()=>{const m=1400,k=Math.min(1,m/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=i.width*k;c.height=i.height*k;c.getContext('2d').drawImage(i,0,0,c.width,c.height);c.toBlob(b=>res(b),'image/jpeg',.72)};i.onerror=()=>res(null);i.src=URL.createObjectURL(f)})}
+/* PIN */
+const hh=s=>{let h=2166136261;for(const c of 'salon'+s){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return String(h>>>0)};
+function lockUI(){const L=$('#lock');L.hidden=false;const set=!S.pin;
+ L.innerHTML=`<div class="card"><h1>${set?'PIN festlegen':'Salon Eingabe'}</h1><p class="mu">${set?'4 bis 6 Ziffern. Die PIN schützt nur diese App.':'PIN eingeben'}</p><input id="pin" type="password" inputmode="numeric" maxlength="6" autocomplete="off"><button class="btn" id="pk">${set?'PIN speichern':'Entsperren'}</button><p id="pe" class="bad"></p></div>`;
+ $('#pk').onclick=()=>{const v=$('#pin').value;if(set){if(!/^\d{4,6}$/.test(v)){$('#pe').textContent='Bitte 4 bis 6 Ziffern eingeben.';return}S.pin=hh(v);save()}else if(hh(v)!==S.pin){$('#pe').textContent='PIN falsch.';return}
+  unlocked=true;L.hidden=true;render()}}
+document.addEventListener('visibilitychange',()=>{if(document.hidden)unlocked=false;else if(!unlocked)lockUI()});
+/* Ansichten */
+const TABS=[['tag','Tag'],['aus','Ausgabe'],['mon','Monat'],['dat','Daten']];
+function nav(){$('#nav').innerHTML=TABS.map(t=>`<button data-t="${t[0]}" aria-current="${tab===t[0]}">${t[1]}</button>`).join('');
+ $('#nav').onclick=e=>{const t=e.target.dataset.t;if(t){tab=t;render()}}}
+function render(){nav();({tag:vTag,aus:vAus,mon:vMon,dat:vDat})[tab]()}
+const bkWarn=()=>{const n=Object.keys(S.days).length+S.exp.length;if(!n)return'';const d=S.bk?(Date.now()-S.bk)/864e5:99;return d>7?`<div class="warn">Backup fällig${S.bk?' (zuletzt vor '+Math.floor(d)+' Tagen)':''}. Tab „Daten“ → Backup sichern.</div>`:''};
+function vTag(){const d=cur.d||today(),e=S.days[d]||{e:'',ec:'',note:'',q:PN.map(()=>0)};cur.d=d;cur.q=e.q.slice();
+ $('#v').innerHTML=`<h1>Tageseinnahmen</h1>${S.names.every(n=>!n)?'<div class="warn">Bitte zuerst im Tab „Daten“ die Produkte einrichten.</div>':''}${mem?'<div class="warn">Speicher nicht verfügbar – Daten gehen beim Schließen verloren.</div>':''}${bkWarn()}
+ <div class="card"><label>Datum</label><input type="date" id="d" value="${d}">
+ <div class="row"><div><label>Einnahmen (€)</label><input id="e" inputmode="decimal" value="${esc(e.e)}"></div><div><label>davon EC (€)</label><input id="ec" inputmode="decimal" value="${esc(e.ec)}"></div></div>
+ <label>Bemerkung (z. B. Feiertag)</label><input id="nt" value="${esc(e.note)}"></div>
+ <div class="card"><h2 style="margin-top:0">Verkaufte Produkte</h2>${PN.map((n,i)=>`<div class="prod"><div class="n">${esc(n)}<div class="p">${eur(price(i,d))}</div></div><button class="stp" data-i="${i}" data-s="-1" aria-label="${esc(n)} weniger">−</button><span class="q" id="q${i}">${cur.q[i]}</span><button class="stp" data-i="${i}" data-s="1" aria-label="${esc(n)} mehr">+</button></div>`).join('')}</div>
+ <div class="card"><div class="sum"><span>Produktumsatz</span><b id="pu"></b></div><div class="sum"><span>Bar (Einnahmen − EC)</span><b id="bar"></b></div><div id="er" class="bad"></div></div>
+ <button class="btn" id="sv">Tag speichern</button>`;
+ const upd=()=>{$('#pu').textContent=eur(dayProd(cur.d,cur.q));const E=num($('#e').value),C=num($('#ec').value);$('#bar').textContent=eur(E-C);$('#er').textContent=C>E?'EC-Anteil ist höher als die Einnahmen.':''};
+ $('#d').onchange=ev=>{cur.d=ev.target.value||today();vTag()};$('#e').oninput=upd;$('#ec').oninput=upd;upd();
+ $('#v').onclick=ev=>{const b=ev.target.closest('.stp');if(!b)return;const i=+b.dataset.i;cur.q[i]=Math.max(0,cur.q[i]+ +b.dataset.s);$('#q'+i).textContent=cur.q[i];upd()};
+ $('#sv').onclick=()=>{const E=num($('#e').value),C=num($('#ec').value);if(E<0||C<0||C>E){toast('Bitte Eingaben prüfen');return}
+  if(S.days[cur.d]&&!confirm('Für diesen Tag gibt es schon einen Eintrag. Überschreiben?'))return;
+  S.days[cur.d]={e:$('#e').value.trim(),ec:$('#ec').value.trim(),note:$('#nt').value.trim(),q:cur.q.slice()};save();toast('Tag gespeichert')}}
+function vAus(){const d=cur.ad||today(),mo=d.slice(0,7),list=S.exp.filter(x=>x.d.slice(0,7)===mo).sort((a,b)=>a.d<b.d?1:-1);
+ $('#v').innerHTML=`<h1>Ausgabe erfassen</h1><div class="card"><label>Datum</label><input type="date" id="ad" value="${d}">
+ <div class="row"><div><label>Betrag (€)</label><input id="am" inputmode="decimal"></div><div><label>Zahlart</label><select id="ap"><option>Konto</option><option>Bar</option></select></div></div>
+ <label>Händler</label><input id="aw"><label>Verwendungszweck</label><input id="an">
+ <label>Kategorie</label><select id="ak"><option value="">– ohne –</option>${CATS.map(c=>`<option>${esc(c)}</option>`).join('')}</select>
+ <label>Quittung fotografieren</label><input type="file" id="af" accept="image/*" capture="environment"></div>
+ <button class="btn" id="as">Ausgabe speichern</button>
+ <h2>Ausgaben im Monat ${esc(mo)} (${list.length})</h2><div class="card">${list.length?list.map(x=>`<div class="li"><span>${esc(x.d.slice(8))}.${esc(x.d.slice(5,7))}. ${esc(x.w||x.n||'–')}<div class="mu">${esc(x.c||'ohne Kategorie')} · ${esc(x.z)}${x.ph?' · Foto':''}</div></span><span><b>${eur(x.a)}</b> <button class="btn sec sm" data-del="${x.id}" aria-label="Löschen">✕</button></span></div>`).join(''):'<p class="mu">Noch keine Ausgaben in diesem Monat.</p>'}</div>`;
+ $('#ad').onchange=ev=>{cur.ad=ev.target.value||today();vAus()};
+ $('#as').onclick=async()=>{const a=num($('#am').value);if(!(a>0)){toast('Bitte einen Betrag eingeben');return}
+  const id=++S.seq,f=$('#af').files[0];let ph=false;if(f){const b=await shrink(f);if(b){await idb('put',id,b);ph=true}}
+  S.exp.push({id,d:$('#ad').value||today(),a,z:$('#ap').value,w:$('#aw').value.trim(),n:$('#an').value.trim(),c:$('#ak').value,ph});save();toast('Ausgabe gespeichert');vAus()};
+ $('#v').onclick=async ev=>{const b=ev.target.closest('[data-del]');if(!b)return;const id=+b.dataset.del;if(!confirm('Diese Ausgabe in der App löschen? Excel bleibt unberührt.'))return;S.exp=S.exp.filter(x=>x.id!==id);await idb('del',id);save();vAus()}}
+function monthStats(m){const ds=Object.keys(S.days).filter(k=>k.slice(0,7)===m).sort();let E=0,C=0,P=0;ds.forEach(k=>{const x=S.days[k];E+=num(x.e);C+=num(x.ec);P+=dayProd(k,x.q)});
+ const A=S.exp.filter(x=>x.d.slice(0,7)===m).reduce((s,x)=>s+x.a,0);return{ds,E,C,P,A,n:ds.filter(k=>num(S.days[k].e)>0).length}}
+function vMon(){const m=cur.m||today().slice(0,7);cur.m=m;const s=monthStats(m);
+ $('#v').innerHTML=`<h1>Monatsübersicht</h1><div class="card"><label>Monat</label><input type="month" id="mm" value="${m}"></div>
+ <div class="card"><div class="sum"><span>Einnahmen</span><b>${eur(s.E)}</b></div><div class="sum"><span>davon EC</span><span>${eur(s.C)}</span></div><div class="sum"><span>davon bar</span><span>${eur(s.E-s.C)}</span></div><div class="sum"><span>Produktumsatz (enthalten)</span><span>${eur(s.P)}</span></div><div class="sum"><span>Ausgaben</span><b>${eur(s.A)}</b></div><div class="sum"><span>Gewinn</span><b class="${s.E-s.A<0?'bad':''}">${eur(s.E-s.A)}</b></div><div class="sum"><span>Öffnungstage</span><span>${s.n}</span></div></div>
+ <h2>Erfasste Tage</h2><div class="card">${s.ds.length?s.ds.map(k=>`<div class="li"><span>${k.slice(8)}.${k.slice(5,7)}. ${esc(S.days[k].note)}</span><b>${eur(num(S.days[k].e))}</b></div>`).join(''):'<p class="mu">Noch keine Tage erfasst.</p>'}</div>`;
+ $('#mm').onchange=ev=>{cur.m=ev.target.value||today().slice(0,7);vMon()}}
+/* Export / Backup */
+const q=v=>{v=String(v??'');return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
+const dc=n=>String(n).replace('.',',');
+async function out(files){if(navigator.canShare&&navigator.canShare({files})){try{await navigator.share({files});return true}catch(e){if(e.name==='AbortError')return false}}
+ files.forEach(f=>{const a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=f.name;a.click()});return true}
+async function exportMonth(m){const s=monthStats(m),files=[];
+ const T=['Datum;Einnahmen;EC;Bemerkung;'+PN.join(';')+';Produktumsatz'];
+ s.ds.forEach(k=>{const x=S.days[k];T.push([k,dc(num(x.e)),dc(num(x.ec)),q(x.note),...x.q,dc(dayProd(k,x.q))].join(';'))});
+ files.push(new File(['\ufeff'+T.join('\r\n')],`Tageswerte_${m}.csv`,{type:'text/csv'}));
+ const X=['Quelle;Datum;Betrag;Händler;Verwendungszweck;Kategorie;Zahlart;Beleg;Konfidenz'];
+ for(const x of S.exp.filter(x=>x.d.slice(0,7)===m).sort((a,b)=>a.d<b.d?-1:1)){let fn='';
+  if(x.ph){const b=await idb('get',x.id);if(b){fn=`${x.d}_${x.id}.jpg`;files.push(new File([b],fn,{type:'image/jpeg'}))}}
+  X.push(['iPad',x.d,dc(x.a),q(x.w),q(x.n),q(x.c),x.z,fn,''].join(';'))}
+ files.push(new File(['\ufeff'+X.join('\r\n')],`Ausgaben_${m}.csv`,{type:'text/csv'}));
+ if(await out(files))toast('Export bereit: in OneDrive-Ordner sichern')}
+async function backup(){const ph={};for(const x of S.exp)if(x.ph){const b=await idb('get',x.id);if(b)ph[x.id]=await new Promise(r=>{const f=new FileReader();f.onload=()=>r(f.result);f.readAsDataURL(b)})}
+ const f=new File([JSON.stringify({S,ph})],`Salon-Backup_${today()}.json`,{type:'application/json'});if(await out([f])){S.bk=Date.now();save();toast('Backup erstellt');vDat()}}
+async function restore(f){if(!f)return;if(!confirm('Alle Daten in der App durch dieses Backup ersetzen?'))return;
+ try{const o=JSON.parse(await f.text());if(!o.S||!o.S.days)throw 0;S=o.S;S.names=S.names||Array(10).fill('');S.prices=S.prices||[];syncPN();for(const id in o.ph||{})await idb('put',+id,await (await fetch(o.ph[id])).blob());save();toast('Backup wiederhergestellt');render()}catch(e){toast('Datei ist kein gültiges Backup')}}
+function vDat(){const m=cur.m||today().slice(0,7);
+ $('#v').innerHTML=`<h1>Daten</h1>${bkWarn()}
+ <div class="card"><h2 style="margin-top:0">Monatsexport für Excel</h2><label>Monat</label><input type="month" id="xm" value="${m}"><p class="mu">Erzeugt Tageswerte, Ausgaben und Quittungsfotos. Im Teilen-Menü „In Dateien sichern“ und den OneDrive-Ordner wählen.</p><button class="btn" id="xe">Monat exportieren</button></div>
+ <div class="card"><h2 style="margin-top:0">Backup</h2><p class="mu">${S.bk?'Zuletzt: '+new Date(S.bk).toLocaleDateString('de-DE'):'Noch kein Backup erstellt.'}</p><button class="btn" id="bk">Backup sichern</button><label>Backup einlesen</label><input type="file" id="rs" accept=".json,application/json"></div>
+ <div class="card"><h2 style="margin-top:0">Produkte einrichten</h2><p class="mu">Namen und aktuelle Preise (gültig ab 01.01.2025). Sie bleiben nur auf diesem iPad.</p>${PN.map((n,i)=>`<div class="row"><input id="sn${i}" placeholder="Produkt ${i+1}" value="${esc(S.names[i])}"><input id="sp${i}" inputmode="decimal" placeholder="Preis €" value="${esc(((S.prices.filter(x=>x.p===i).sort((a,b)=>a.f<b.f?1:-1)[0]||{}).v)??'')}"></div>`).join('')}<button class="btn" id="ps">Produkte speichern</button></div>
+ <div class="card"><h2 style="margin-top:0">Preise (mit Gültigkeit)</h2>${PN.map((n,i)=>{const l=S.prices.filter(x=>x.p===i).sort((a,b)=>a.f<b.f?1:-1)[0];return `<div class="li"><span>${esc(n)}</span><span>${eur(l?l.v:0)} <span class="mu">ab ${esc(l?l.f.split('-').reverse().join('.'):'–')}</span></span></div>`}).join('')}
+ <h2>Neuer Preis</h2><label>Produkt</label><select id="pp">${PN.map((n,i)=>`<option value="${i}">${esc(n)}</option>`).join('')}</select><div class="row"><div><label>Preis (€)</label><input id="pv" inputmode="decimal"></div><div><label>gültig ab</label><input type="date" id="pf" value="${today()}"></div></div><button class="btn sec" id="pa">Preis anlegen</button><p class="mu">Alte Tage behalten ihren damaligen Preis. Preise bitte auch im Excel-Blatt „Preise“ eintragen.</p></div>
+ <button class="btn sec" id="lk">App sperren</button>`;
+ $('#ps').onclick=()=>{S.names=PN.map((_,i)=>$('#sn'+i).value.trim());S.prices=S.prices.filter(x=>x.f!=='2025-01-01');PN.forEach((_,i)=>{const t=$('#sp'+i).value.trim();if(t!=='')S.prices.push({p:i,v:num(t),f:'2025-01-01'})});syncPN();save();toast('Produkte gespeichert');vDat()};$('#xe').onclick=()=>exportMonth($('#xm').value||m);$('#bk').onclick=backup;$('#rs').onchange=e=>restore(e.target.files[0]);$('#lk').onclick=()=>{unlocked=false;lockUI()};
+ $('#pa').onclick=()=>{const v=num($('#pv').value),f=$('#pf').value;if(!(v>=0)||!f||$('#pv').value==='') {toast('Preis und Datum eingeben');return}
+  const p=+$('#pp').value;S.prices=S.prices.filter(x=>!(x.p===p&&x.f===f));S.prices.push({p,v,f});save();toast('Preis gespeichert');vDat()}}
+load();try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
+lockUI();
+if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+</script></body></html>

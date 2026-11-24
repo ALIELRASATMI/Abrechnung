@@ -1,0 +1,36 @@
+SALON EINGABE – Installation auf GitHub Pages und iPad
+=======================================================
+
+Was online liegt: nur diese App-Dateien (leere Eingabemaske).
+Was NIE online liegt: Einnahmen, Ausgaben, Fotos, Produktnamen und Preise.
+Die Daten bleiben nur auf dem iPad.
+
+TEIL 1 – GitHub (am Computer)
+1. Auf github.com ein kostenloses Konto anlegen.
+   Tipp: neutralen Benutzernamen wählen (er steht später in der Webadresse).
+2. Oben rechts "+" -> "New repository".
+   - Name: neutral, z. B. "eingabe-app"
+   - "Public" auswählen (bei kostenlosen Konten nötig für GitHub Pages)
+   - "Create repository"
+3. Auf der neuen Seite "uploading an existing file" anklicken.
+4. Diese 6 Dateien in das Fenster ziehen:
+   index.html, sw.js, manifest.webmanifest, icon-180.png, icon-192.png, icon-512.png
+   (LIESMICH.txt nicht hochladen.) Dann unten "Commit changes".
+5. "Settings" -> links "Pages" -> unter "Branch" "main" und "/ (root)" wählen -> "Save".
+6. Nach 1–2 Minuten steht oben die Adresse, z. B.
+   https://BENUTZERNAME.github.io/eingabe-app/
+
+TEIL 2 – iPad
+1. Adresse in SAFARI öffnen (nicht in einer anderen App).
+2. Teilen-Symbol -> "Zum Home-Bildschirm" -> "Hinzufügen".
+3. Ab jetzt IMMER die App vom Home-Bildschirm öffnen, nicht den Safari-Tab.
+4. PIN festlegen. Tab "Daten" -> "Produkte einrichten" -> 10 Namen und Preise eintragen -> speichern.
+5. Offline-Test: Flugmodus einschalten, App öffnen, einen Testtag speichern.
+   Danach über "Daten" -> "Backup sichern" ein Backup erstellen und testweise wieder einlesen.
+
+WICHTIG
+- Erst nach dem Test mit Beispieltagen echte Daten eintragen.
+- Backup regelmäßig (die App erinnert nach 7 Tagen) in den OneDrive-Ordner sichern.
+- Daten der Test-Version im Safari-Tab kommen NICHT in die Home-Bildschirm-App mit.
+- Die App nicht vom Home-Bildschirm löschen: Dabei werden ihre Daten entfernt.
+- Updates: geänderte Dateien wieder auf GitHub hochladen. Die App lädt sie beim nächsten Start mit Netz selbst nach.
